@@ -1,0 +1,19 @@
+# Secrets / local config
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Local scratch / marker notes (not part of the runnable project)
+_all_run.txt
+_stage1_all.txt
+_assignment_text.txt
+_redteam.py
+audit/
+tools/
+FINAL_AUDIT.md
+MARKING_REVIEW.md

@@ -1,0 +1,6 @@
+# InboxHero runs on the Python standard library only (Python 3.10+).
+# No third-party runtime dependencies are required for the offline default path.
+#
+# Optional, only if you wire up the LLM drafting backend (INBOXHERO_MODE=llm):
+# python-dotenv>=1.0
+# requests>=2.31
