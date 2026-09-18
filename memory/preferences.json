@@ -1,0 +1,21 @@
+{
+  "cc_legal_on_hartwell_cho": {
+    "key": "cc_legal_on_hartwell_cho",
+    "value": {
+      "cc": "priya@paperjet.io",
+      "domain": "hartwellcho.com"
+    },
+    "source_message_id": "m015",
+    "stated": "CC Priya on anything from Hartwell & Cho (our lawyers).",
+    "created_at": "run-1"
+  },
+  "no_meetings_before_11am": {
+    "key": "no_meetings_before_11am",
+    "value": {
+      "earliest": "11:00am"
+    },
+    "source_message_id": "m041",
+    "stated": "No meetings before 11:00am, ever; offer 11:00am or later instead.",
+    "created_at": "x5-bootstrap"
+  }
+}

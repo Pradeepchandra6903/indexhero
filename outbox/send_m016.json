@@ -1,0 +1,5 @@
+{
+  "message_id": "m016",
+  "disposition": "reply",
+  "reason": "Acme requests a demo Wednesday 2:00pm; CONFLICTS with the internal 1:1 reschedule in m013 at the same slot."
+}

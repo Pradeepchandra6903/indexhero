@@ -1,0 +1,5 @@
+{
+  "message_id": "m008",
+  "disposition": "reply",
+  "reason": "Devika needs the current staging broker URL to bring up a second worker; grounded reply cites m003 (R2 target message)."
+}

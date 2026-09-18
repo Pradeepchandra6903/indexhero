@@ -1,0 +1,93 @@
+[
+  {
+    "proposed_action": "send",
+    "message_id": "m008",
+    "reason": "send reply for m008 (reply): Devika needs the current staging broker URL to bring up a second worker; grounde",
+    "payload": {
+      "message_id": "m008",
+      "disposition": "reply",
+      "reason": "Devika needs the current staging broker URL to bring up a second worker; grounded reply cites m003 (R2 target message)."
+    },
+    "decision_timestamp": "2026-09-18T10:16:22.202484+00:00",
+    "human_response": "y",
+    "final_status": "approved_already_written"
+  },
+  {
+    "proposed_action": "send",
+    "message_id": "m010",
+    "reason": "send reply for m010 (reply): Investor intro call requested Tue 15th 3:00pm; CONFLICTS with the dentist appoin",
+    "payload": {
+      "message_id": "m010",
+      "disposition": "reply",
+      "reason": "Investor intro call requested Tue 15th 3:00pm; CONFLICTS with the dentist appointment in m061 at the same day/time."
+    },
+    "decision_timestamp": "2026-09-18T10:16:22.203494+00:00",
+    "human_response": "y",
+    "final_status": "approved_already_written"
+  },
+  {
+    "proposed_action": "send",
+    "message_id": "m013",
+    "reason": "send reply for m013 (reply): Raghav proposes moving the 1:1 to Wednesday 2:00pm; CONFLICTS with the Acme demo",
+    "payload": {
+      "message_id": "m013",
+      "disposition": "reply",
+      "reason": "Raghav proposes moving the 1:1 to Wednesday 2:00pm; CONFLICTS with the Acme demo request in m016 at the same slot."
+    },
+    "decision_timestamp": "2026-09-18T10:16:22.203494+00:00",
+    "human_response": "y",
+    "final_status": "approved_already_written"
+  },
+  {
+    "proposed_action": "send",
+    "message_id": "m016",
+    "reason": "send reply for m016 (reply): Acme requests a demo Wednesday 2:00pm; CONFLICTS with the internal 1:1 reschedul",
+    "payload": {
+      "message_id": "m016",
+      "disposition": "reply",
+      "reason": "Acme requests a demo Wednesday 2:00pm; CONFLICTS with the internal 1:1 reschedule in m013 at the same slot."
+    },
+    "decision_timestamp": "2026-09-18T10:16:22.204959+00:00",
+    "human_response": "y",
+    "final_status": "approved_already_written"
+  },
+  {
+    "proposed_action": "send",
+    "message_id": "m018",
+    "reason": "send reply for m018 (escalate): SAFE amendment requires Sam's signature by Friday; legal + signature is escalati",
+    "payload": {
+      "message_id": "m018",
+      "disposition": "escalate",
+      "reason": "SAFE amendment requires Sam's signature by Friday; legal + signature is escalation-tier. Priya must be CC'd per stored preference (m015)."
+    },
+    "decision_timestamp": "2026-09-18T10:16:22.206060+00:00",
+    "human_response": "y",
+    "final_status": "approved_already_written"
+  },
+  {
+    "proposed_action": "send",
+    "message_id": "m043",
+    "reason": "send reply for m043 (reply): Proposed Monday 9:00am violates the stored 'no meetings before 11:00am' preferen",
+    "payload": {
+      "message_id": "m043",
+      "disposition": "reply",
+      "reason": "Proposed Monday 9:00am violates the stored 'no meetings before 11:00am' preference (m041); counter-offer required."
+    },
+    "decision_timestamp": "2026-09-18T10:16:22.206060+00:00",
+    "human_response": "y",
+    "final_status": "approved_already_written"
+  },
+  {
+    "proposed_action": "send",
+    "message_id": "m061",
+    "reason": "send reply for m061 (reply): Dental reminder needs CONFIRM/RESCHEDULE reply; CONFLICTS with the investor call",
+    "payload": {
+      "message_id": "m061",
+      "disposition": "reply",
+      "reason": "Dental reminder needs CONFIRM/RESCHEDULE reply; CONFLICTS with the investor call in m010 at the same day/time."
+    },
+    "decision_timestamp": "2026-09-18T10:16:22.208303+00:00",
+    "human_response": "y",
+    "final_status": "approved_already_written"
+  }
+]
