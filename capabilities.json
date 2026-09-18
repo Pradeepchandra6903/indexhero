@@ -1,0 +1,117 @@
+{
+  "student": "Pradeep Chandra Tunga, evernorth-aai-1189022",
+  "repo": "https://github.com/Pradeepchandra6903/indexhero",
+  "system": {
+    "framework": "none",
+    "model": "none — deterministic, offline pipeline. The human-judgment layer is a curated, fully-auditable decision table that stands in for an LLM call so the whole system is reproducible with no API key and no nondeterminism. The seams (Router -> Retrieval -> Action -> Gate) are exactly where an LLM would drop in.",
+    "messages_processed": 100,
+    "rule_handled": 58,
+    "dispositions": ["reply", "archive", "defer", "delegate", "escalate"],
+    "retrieval": "thread-walk primary, keyword fallback",
+    "irreversible": ["send", "delete", "forward"],
+    "reversible": ["draft", "label", "archive", "defer", "delegate"],
+    "gate": "both",
+    "preference_demo": "m015: always CC Priya on Hartwell & Cho legal mail (applied to m018/m048/m055); m041: no meetings before 11:00am (applied to m043)"
+  },
+  "capabilities": [
+    {
+      "id": "R1",
+      "name": "Zero the inbox",
+      "tier": "B",
+      "claim": "Assigns every one of the 100 messages exactly one disposition (reply/archive/defer/delegate/escalate) with a one-line reason, leaving none undecided.",
+      "command": "python demo.py --cap R1",
+      "observable": "Prints a table of all 100 messages, each with category+disposition+reason, then 'undecided: 0'. Writes decisions.json.",
+      "evidence": "trace.jsonl events tagged cap=R1 (one Router event per message id); decisions.json"
+    },
+    {
+      "id": "R2",
+      "name": "Grounded reply",
+      "tier": "B",
+      "claim": "Drafts a reply grounded in a specific earlier message, records the message ids it drew on, and does not replay credentials found in email.",
+      "command": "python demo.py --cap R2 --msg m008",
+      "observable": "Prints a draft for m008 that cites m003, refuses to resend connection credentials by email, and directs the recipient to the shared secrets manager.",
+      "evidence": "trace.jsonl events tagged cap=R2 (a draft event whose cited ids appear as real messages)"
+    },
+    {
+      "id": "R3",
+      "name": "Gate the irreversible",
+      "tier": "C",
+      "claim": "Never sends/deletes/forwards without per-action approval or an explicit --dry-run that shows what it would do.",
+      "command": "python demo.py --cap R3 --dry-run",
+      "observable": "Prints every send it WOULD perform, then 'outbox/ writes: 0'. Without --dry-run it prompts y/n before each send; --auto-deny records every action as denied.",
+      "evidence": "trace.jsonl events tagged cap=R3 (ApprovalGate events); pending_actions.json; approval_log.jsonl"
+    },
+    {
+      "id": "R4",
+      "name": "Persistent preference",
+      "tier": "C",
+      "claim": "Records a stated preference and applies it on a later run after the process has fully exited.",
+      "command": "python demo.py --cap R4",
+      "observable": "First run stores 'CC Priya on Hartwell & Cho legal mail' (from m015) to memory/preferences.json and exits. Second, fresh process applies it to m018/m048/m055 without being told again.",
+      "evidence": "memory/preferences.json on disk between runs; trace.jsonl events tagged cap=R4; memory_demo.md"
+    },
+    {
+      "id": "R5",
+      "name": "Refuse embedded instructions",
+      "tier": "C",
+      "claim": "Detects instructions/social-engineering addressed to the assistant inside message bodies, refuses them, flags them, and reports them — without deleting, forwarding, or hiding them.",
+      "command": "python demo.py --cap R5",
+      "observable": "Prints 'FLAGGED: m024 attempted [prompt_injection:...] -- not done, left in place, not forwarded' for all 7 hostile messages. outbox/ contains no message to any address named inside a flagged message; none are deleted.",
+      "evidence": "trace.jsonl events tagged cap=R5 (a refusal event per hostile id); security_design.md"
+    },
+    {
+      "id": "R6",
+      "name": "Dashboard",
+      "tier": "C",
+      "claim": "Generates a three-pane view (Pending Actions, Flagged Items, Commitments Calendar), commitments cited to source message ids, cross-thread commitments supported, conflicts surfaced.",
+      "command": "python demo.py --cap R6",
+      "observable": "Writes dashboard.html/json. Commitments pane cites source ids; flags two conflicts: '15 3:00pm -> [m010, m061]' and 'wednesday 2:00pm -> [m013, m016]'; and the cross-thread board-deck-by-16th commitment citing [m038, m040].",
+      "evidence": "dashboard.html and dashboard.json; trace.jsonl events tagged cap=R6"
+    },
+    {
+      "id": "X1",
+      "name": "Smart Daily Digest",
+      "tier": "A",
+      "claim": "Produces a one-screen digest: what needs Sam today, what can wait, and what was auto-archived (aggregated by category, not individually).",
+      "command": "python demo.py --cap X1",
+      "observable": "Prints three sections. 'Needs you today' contains the investor intro m010, the legal signature m018, and press m046; 'Auto-archived' lists categories by count (notification/receipt/newsletter/human_conversation).",
+      "evidence": "trace.jsonl events tagged cap=X1"
+    },
+    {
+      "id": "X2",
+      "name": "Long Thread Resolution",
+      "tier": "B",
+      "claim": "Collapses each long multi-participant thread into participants + milestones + open items, grounded with per-line message-id citations.",
+      "command": "python demo.py --cap X2",
+      "observable": "For t-launch (9 messages, 4 participants) and t-api (4 messages) it prints every milestone by id and the open items (e.g. t-launch open item = m030 pricing approval).",
+      "evidence": "trace.jsonl events tagged cap=X2"
+    },
+    {
+      "id": "X3",
+      "name": "Relationship Intelligence",
+      "tier": "B",
+      "claim": "Builds a per-correspondent profile (relationship type, message volume, who is waiting longest on Sam) from sender patterns already used by the pipeline.",
+      "command": "python demo.py --cap X3",
+      "observable": "Prints a ranked table: investor aria.f@northwind.vc waiting on [m010, m043]; legal m.cho@hartwellcho.com on [m018, m055]; colleague priya@paperjet.io on [m030, m040]; etc.",
+      "evidence": "trace.jsonl events tagged cap=X3"
+    },
+    {
+      "id": "X4",
+      "name": "Autonomous Assistant Planning",
+      "tier": "B",
+      "claim": "Produces a prioritized day plan from decisions + commitment dates. Purely informational: every recommended send still has to pass R3's gate.",
+      "command": "python demo.py --cap X4",
+      "observable": "Prints an ordered plan (escalations first, then replies, each by commitment date), marking every escalation '[needs approval]'.",
+      "evidence": "trace.jsonl events tagged cap=X4"
+    },
+    {
+      "id": "X5",
+      "name": "Preference-Aware Negotiation Agent",
+      "tier": "C",
+      "claim": "Drafts a preference-aware counter-proposal for a scheduling violation and surfaces conflicts without inventing availability. Never sends — drafts still pass R3.",
+      "command": "python demo.py --cap X5",
+      "observable": "Drafts a counter for m043 (Monday 9:00am violates the stored 11:00am cutoff from m041) and conflict notices for [m010,m061] and [m013,m016] that state no alternative availability is grounded in the inbox.",
+      "evidence": "trace.jsonl events tagged cap=X5; memory/preferences.json"
+    }
+  ]
+}
