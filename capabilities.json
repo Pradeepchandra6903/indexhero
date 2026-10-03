@@ -11,62 +11,63 @@
     "irreversible": ["send", "delete", "forward"],
     "reversible": ["draft", "label", "archive", "defer", "delegate"],
     "gate": "both",
-    "preference_demo": "m015: always CC Priya on Hartwell & Cho legal mail (applied to m018/m048/m055); m041: no meetings before 11:00am (applied to m043)"
+    "input_assumptions": "inbox.json is a JSON array of objects with exactly the keys id, thread_id, from, to, subject, body, timestamp. id is unique (duplicates are rejected). timestamp is naive ISO-8601 'YYYY-MM-DDTHH:MM:SS' with no timezone, and messages are sorted by (timestamp, id) at load. thread_id groups a conversation; a message with no sibling has no thread history and retrieval will refuse rather than guess. from/to are bare addresses, not 'Name <addr>'. The mailbox owner is sam@paperjet.io and every message is addressed to that account; trusted domains are derived from it rather than listed. Bodies are plain text and are treated as untrusted data. 'Today' is the newest timestamp in the file, so every run is reproducible. A missing key, bad JSON, duplicate id or unparseable timestamp exits with a one-line message instead of a traceback.",
+    "preference_demo": "Preferences are extracted from message text by memory.PreferenceLearner, not configured: m041 ('I do not take meetings before 11:00am, ever') and m015 ('please make sure I'm CC'd on anything that comes in from our lawyers at Hartwell & Cho'). The firm name is resolved to hartwellcho.com from the inbox's own senders. The CC lands on real drafts for m018/m048/m055; the cutoff drives X5's counter-proposal for m043."
   },
   "capabilities": [
     {
       "id": "R1",
       "name": "Zero the inbox",
       "tier": "B",
-      "claim": "Assigns every one of the 100 messages exactly one disposition (reply/archive/defer/delegate/escalate) with a one-line reason, leaving none undecided.",
+      "claim": "Assigns every one of the 100 messages exactly one disposition (reply/archive/defer/delegate/escalate) with a one-line reason and a provenance path, leaving none undecided, and reports how many needed no model call.",
       "command": "python demo.py --cap R1",
-      "observable": "Prints a table of all 100 messages, each with category+disposition+reason, then 'undecided: 0'. Writes decisions.json.",
-      "evidence": "trace.jsonl events tagged cap=R1 (one Router event per message id); decisions.json"
+      "observable": "Prints a table of all 100 messages (category, disposition, path, reason), then 'undecided: 0', 'rule_handled (dispatched by RuleEngine, no model call): 58', 'resolved without any model call (rules + security patterns): 65', and a per-path breakdown (rules=56, rules+curated_override=2, security=7, curated_judgment=35). Writes decisions.json with path and rule_handled on each entry.",
+      "evidence": "trace.jsonl events tagged cap=R1 (one Router event per message id plus a summary event carrying the counts); decisions.json"
     },
     {
       "id": "R2",
       "name": "Grounded reply",
       "tier": "B",
-      "claim": "Drafts a reply grounded in a specific earlier message, records the message ids it drew on, and does not replay credentials found in email.",
+      "claim": "Drafts a reply built only from text the retriever returned, quotes the sentence it relied on, validates its cited ids against the mail store, refuses when nothing supports an answer, and masks any secret it reuses instead of replaying it.",
       "command": "python demo.py --cap R2 --msg m008",
-      "observable": "Prints a draft for m008 that cites m003, refuses to resend connection credentials by email, and directs the recipient to the shared secrets manager.",
-      "evidence": "trace.jsonl events tagged cap=R2 (a draft event whose cited ids appear as real messages)"
+      "observable": "Prints a draft to devika@paperjet.io citing m003 and quoting m003's own sentence with the password masked ('amqp://pj_stage:***@broker-stg.paperjet.io:5672/pjs'), gives the host, port, vhost and user from that URL, and says the password will not be repeated in a mail thread. '--msg m042' prints 'REFUSED' with 'cited: []' because no earlier message supports an answer.",
+      "evidence": "trace.jsonl events tagged cap=R2 (a draft event whose cited ids and quoted evidence can be diffed against inbox.json)"
     },
     {
       "id": "R3",
       "name": "Gate the irreversible",
       "tier": "C",
-      "claim": "Never sends/deletes/forwards without per-action approval or an explicit --dry-run that shows what it would do.",
+      "claim": "Never sends/deletes/forwards without per-action approval or an explicit --dry-run. What it proposes comes from a selection policy over the Router's output, and each approval is an approval of the actual reply text, recipient and citations.",
       "command": "python demo.py --cap R3 --dry-run",
-      "observable": "Prints every send it WOULD perform, then 'outbox/ writes: 0'. Without --dry-run it prompts y/n before each send; --auto-deny records every action as denied.",
-      "evidence": "trace.jsonl events tagged cap=R3 (ApprovalGate events); pending_actions.json; approval_log.jsonl"
+      "observable": "Prints the policy ('non-hostile + disposition=reply + grounded draft exists -> 8 of 100 messages'), then every send it WOULD perform with recipient and cited ids, then 'outbox/ writes made by this run: 0'. It also prints what it withholds (m042, no grounded draft) and the five escalations a human must author. Without --dry-run it prompts y/n per action and the file written to outbox/ contains to, cc, subject, body and cited.",
+      "evidence": "trace.jsonl events tagged cap=R3 (ApprovalGate events incl. recipient and human_response); pending_actions.json; approval_log.jsonl"
     },
     {
       "id": "R4",
       "name": "Persistent preference",
       "tier": "C",
-      "claim": "Records a stated preference and applies it on a later run after the process has fully exited.",
+      "claim": "Extracts a standing preference from the text of the message that states it, persists it, and on a later run in a fresh process applies it to real drafts without being told again.",
       "command": "python demo.py --cap R4",
-      "observable": "First run stores 'CC Priya on Hartwell & Cho legal mail' (from m015) to memory/preferences.json and exits. Second, fresh process applies it to m018/m048/m055 without being told again.",
-      "evidence": "memory/preferences.json on disk between runs; trace.jsonl events tagged cap=R4; memory_demo.md"
+      "observable": "First run prints the preferences it learned with the sentence each came from (m041 earliest_meeting_time=11:00am; m015 cc_rule:hartwellcho.com=priya@paperjet.io) and exits. A second, fresh process prints 'RUN 2: loaded 2 preference(s) from disk' and attaches cc=['priya@paperjet.io'] to the drafts for m018, m048 and m055.",
+      "evidence": "memory/preferences.json on disk between runs (key, value, source_message_id, stated); trace.jsonl events tagged cap=R4; memory_demo.md"
     },
     {
       "id": "R5",
       "name": "Refuse embedded instructions",
       "tier": "C",
-      "claim": "Detects instructions/social-engineering addressed to the assistant inside message bodies, refuses them, flags them, and reports them — without deleting, forwarding, or hiding them.",
+      "claim": "Detects instructions and social-engineering aimed at the assistant inside message bodies, reports what each message tried to make it do and the target named, refuses, and leaves the message in place — not deleted, not forwarded, not hidden.",
       "command": "python demo.py --cap R5",
-      "observable": "Prints 'FLAGGED: m024 attempted [prompt_injection:...] -- not done, left in place, not forwarded' for all 7 hostile messages. outbox/ contains no message to any address named inside a flagged message; none are deleted.",
-      "evidence": "trace.jsonl events tagged cap=R5 (a refusal event per hostile id); security_design.md"
+      "observable": "Flags all 7 hostile messages and lists every finding per message as an attempted action, e.g. m024 'forward mail to an external address -> archive@mail-backup-service.info', m021 'redirect a payment to an attacker-controlled bank account -> $8,400 to account ending 5522', m045 'collect the owner's account credentials via an external page -> http://paperjet-workspace-verify.com/login'. Each shows 'reply drafted for it: none (refused)'. outbox/ contains no message to any address named inside a flagged message.",
+      "evidence": "trace.jsonl events tagged cap=R5 (a refusal event per hostile id carrying attempted_actions and targets); security_design.md"
     },
     {
       "id": "R6",
       "name": "Dashboard",
       "tier": "C",
-      "claim": "Generates a three-pane view (Pending Actions, Flagged Items, Commitments Calendar), commitments cited to source message ids, cross-thread commitments supported, conflicts surfaced.",
+      "claim": "Generates a three-pane view (Pending Actions, Flagged Items, Commitments Calendar) where every commitment cites the ids it came from, those ids are validated against the mail store, conflicts are surfaced, and cross-thread commitments are computed by date arithmetic across two messages.",
       "command": "python demo.py --cap R6",
-      "observable": "Writes dashboard.html/json. Commitments pane cites source ids; flags two conflicts: '15 3:00pm -> [m010, m061]' and 'wednesday 2:00pm -> [m013, m016]'; and the cross-thread board-deck-by-16th commitment citing [m038, m040].",
-      "evidence": "dashboard.html and dashboard.json; trace.jsonl events tagged cap=R6"
+      "observable": "Writes dashboard.html/json and prints '17 commitments (1 derived from more than one message)' and 'Citation errors: 0'. It flags conflicts '15 3:00pm -- [m010, m061]' and 'wednesday 2:00pm -- [m013, m016]', and prints the derived entry with its working: \"offset '2 days before the board review' and the subject 'board deck' come from m040; the 18 comes from m038; 18 - 2 = 16\".",
+      "evidence": "dashboard.html and dashboard.json (each commitment carries cited and, when derived, derivation); trace.jsonl events tagged cap=R6"
     },
     {
       "id": "X1",
@@ -90,28 +91,28 @@
       "id": "X3",
       "name": "Relationship Intelligence",
       "tier": "B",
-      "claim": "Builds a per-correspondent profile (relationship type, message volume, who is waiting longest on Sam) from sender patterns already used by the pipeline.",
+      "claim": "Builds a per-correspondent profile (relationship type, message volume, and who has been waiting longest on Sam) ranked by the age in days of each sender's oldest unanswered message, not by how many are outstanding.",
       "command": "python demo.py --cap X3",
-      "observable": "Prints a ranked table: investor aria.f@northwind.vc waiting on [m010, m043]; legal m.cho@hartwellcho.com on [m018, m055]; colleague priya@paperjet.io on [m030, m040]; etc.",
-      "evidence": "trace.jsonl events tagged cap=X3"
+      "observable": "Prints the clock it uses (newest message in the mailbox, 2026-09-09T17:17:00) and a table of the 18 senders with something outstanding, ordered by wait: devika@paperjet.io 6.1d (m008), alerts@sentry.io 5.2d (m090), priya@paperjet.io 4.3d (m030), aria.f@northwind.vc 2.4d (m010). priya has more outstanding messages than devika and still ranks below her.",
+      "evidence": "trace.jsonl events tagged cap=X3 (longest_waits with per-sender waiting_days)"
     },
     {
       "id": "X4",
       "name": "Autonomous Assistant Planning",
-      "tier": "B",
-      "claim": "Produces a prioritized day plan from decisions + commitment dates. Purely informational: every recommended send still has to pass R3's gate.",
+      "tier": "A",
+      "claim": "Produces a prioritized day plan from decisions + commitment dates and, for each row, states what R3's own send-selection policy would do with it. The plan is a view: X4 itself performs no action and writes nothing.",
       "command": "python demo.py --cap X4",
-      "observable": "Prints an ordered plan (escalations first, then replies, each by commitment date), marking every escalation '[needs approval]'.",
-      "evidence": "trace.jsonl events tagged cap=X4"
+      "observable": "Prints 21 ordered plan items (escalations first, then replies by commitment date). Each row's 'next step' is computed by calling R3's selection policy: 'R3 proposes send (needs approval)', 'human decision required', or 'human must author the reply (nothing grounded to send)' (m042). Ends with '8 of 21 plan items would be selected by R3's send policy'.",
+      "evidence": "trace.jsonl events tagged cap=X4 (plan event listing the gateable ids)"
     },
     {
       "id": "X5",
       "name": "Preference-Aware Negotiation Agent",
       "tier": "C",
-      "claim": "Drafts a preference-aware counter-proposal for a scheduling violation and surfaces conflicts without inventing availability. Never sends — drafts still pass R3.",
+      "claim": "Scans every parsed commitment against the stored cutoff — no message id or time is written into the capability — drafts counter-proposals only where a human is actually waiting on an answer, invents no availability, and hands every draft to R3's gate rather than acting on it.",
       "command": "python demo.py --cap X5",
-      "observable": "Drafts a counter for m043 (Monday 9:00am violates the stored 11:00am cutoff from m041) and conflict notices for [m010,m061] and [m013,m016] that state no alternative availability is grounded in the inbox.",
-      "evidence": "trace.jsonl events tagged cap=X5; memory/preferences.json"
+      "observable": "Prints the rule in effect with the sentence it was learned from (m041), finds 3 violations, drafts a counter-proposal only for m043 (monday 9:00am < 11:00am) quoting m041, and marks m038 and m080 'advisory, no draft' because nobody is waiting on an answer. Conflict notices for [m010,m061] and [m013,m016] state that no alternative availability is grounded in the inbox. All 3 drafts are passed to ApprovalGate and come back 'dry_run_would_do'; 'outbox/ writes from X5: 0'.",
+      "evidence": "trace.jsonl events tagged cap=X5 (each draft event records the gate's verdict); memory/preferences.json"
     }
   ]
 }

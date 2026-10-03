@@ -28,9 +28,10 @@ inboxhero/
   rules.py                  RuleEngine (newsletter/receipt/notification)
   router.py                 Router (one disposition per message; R1)
   retrieval.py              thread-walk + keyword + citation builder
-  memory.py                 PreferenceMemory (persists to memory/preferences.json)
-  commitments.py            commitment extraction + cross-thread conflict detection
-  actions.py                Action Gateway + ApprovalGate
+  memory.py                 PreferenceLearner + PreferenceMemory (memory/preferences.json)
+  commitments.py            commitment extraction, cross-thread derivation, conflicts
+  drafting.py               DraftBuilder — the only producer of reply text
+  actions.py                Action Gateway + ApprovalGate + send-selection policy
   trace.py                  append-only trace.jsonl logger
   dashboard.py              three-pane dashboard generator
   capabilities/r1..r6, x1..x5.py
@@ -84,16 +85,24 @@ Every consequential action is **traceable to an evidence trail and a human decis
 - **Trace log.** `trace.jsonl` records one event per decision with
   `timestamp, message_id, component, reasoning_summary, evidence_messages,
   final_action`. Any capability's behavior can be reconstructed from it alone.
-- **Grounding = citations.** Grounded replies (R2) and cross-thread commitments (R6,
-  board deck) record the exact message ids they relied on, so a reader can verify the
-  claim without reproducing sensitive source content (for example, the board date is
-  grounded in m038).
+- **Grounding = citations, and citations are checked.** Grounded replies (R2) and
+  cross-thread commitments (R6, board deck) record the exact message ids they relied
+  on *and* the sentence quoted from each, and every id is validated against the mail
+  store before the artifact is produced. A draft or pane that cannot cite a real
+  message is refused rather than shown — `m042` gets no reply for exactly this
+  reason, and removing `m038` from the inbox makes the derived board-deck deadline
+  disappear instead of going stale.
+- **Decision provenance.** Each `Decision` carries a `path` saying which branch
+  decided it (`security`, `rules`, `rules+curated_override`, `curated_judgment`,
+  `fallback_defer`), so R1's "58 handled by rules, 65 with no model call" is a count
+  over the run rather than a figure in a document.
 - **Approval log.** `approval_log.jsonl` records, per irreversible action,
   `proposed_action, message_id, reason, human_response, final_status`. `pending_actions.json`
   snapshots what is awaiting a human.
-- **Preference provenance.** Each stored preference keeps its `source_message_id`
-  (m015 for the legal-CC rule), so every applied CC traces back to the request that
-  authorized it.
+- **Preference provenance.** Preferences are extracted from message text, and each
+  one keeps its `source_message_id` and the exact sentence it was read from (m015 for
+  the legal-CC rule, m041 for the 11:00am cutoff), so every applied CC and every
+  counter-proposal traces back to the request that authorized it.
 - **Human is the final authority.** The only path to send/delete/forward is
   `ApprovalGate.require_approval()`; the human's y/n is recorded and binding.
 
@@ -115,8 +124,12 @@ Every consequential action is **traceable to an evidence trail and a human decis
   approval gate. The architecture is designed so that swap is local, not a rewrite.
 
 ## Assumptions, trade-offs, future improvements
-- **Assumption:** `sam@paperjet.io` is the mailbox owner; a `From:` of that address in
-  a message body is *not* proof of intent (see m039).
+- **Input data format.** Every assumption the code makes about `inbox.json` (keys,
+  timestamp format, what "today" means, what happens with no thread history) is
+  listed under "Input data-format assumptions" in `CAPABILITIES.md`.
+- **Assumption:** `sam@paperjet.io` is the mailbox owner (`models.OWNER_ADDRESS`);
+  a `From:` of that address in a message body is *not* proof of intent (see m039).
+  Trusted domains are derived from it, not listed.
 - **Trade-off:** the curated human-judgment table is inbox-specific; in exchange it is
   100% reproducible and auditable. The seams for an LLM are clearly marked.
 - **Future:** swap the decision table for an LLM behind the same gate; add a real
