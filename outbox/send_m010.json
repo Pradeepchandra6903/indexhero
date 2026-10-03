@@ -1,5 +1,15 @@
 {
   "message_id": "m010",
-  "disposition": "reply",
-  "reason": "Investor intro call requested Tue 15th 3:00pm; CONFLICTS with the dentist appointment in m061 at the same day/time."
+  "to": "aria.f@northwind.vc",
+  "cc": [],
+  "subject": "Re: Intro call this week?",
+  "body": "Hi Aria -- the 15th 3:00pm does not work on my side. m061 already has that slot: \"This is a reminder of your dental cleaning with Dr. Osei on Tuesday, September 15 at 3:00 PM.\" (from appointments@brightsmile-dental.com). Can we pick another time rather than double-book?",
+  "cited": [
+    "m010",
+    "m061"
+  ],
+  "evidence": [
+    "This is a reminder of your dental cleaning with Dr. Osei on Tuesday, September 15 at 3:00 PM."
+  ],
+  "draft_kind": "conflict"
 }

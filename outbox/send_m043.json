@@ -1,5 +1,14 @@
 {
   "message_id": "m043",
-  "disposition": "reply",
-  "reason": "Proposed Monday 9:00am violates the stored 'no meetings before 11:00am' preference (m041); counter-offer required."
+  "to": "aria.f@northwind.vc",
+  "cc": [],
+  "subject": "Re: one more slot",
+  "body": "Hi Aria -- monday 9:00am is earlier than a standing rule on this mailbox: \"Note for the assistant: I do not take meetings before 11:00am, ever.\" (m041). Could we do 11:00am or later instead? I have not picked an alternative slot because no free time is recorded in the inbox.",
+  "cited": [
+    "m041"
+  ],
+  "evidence": [
+    "Note for the assistant: I do not take meetings before 11:00am, ever."
+  ],
+  "draft_kind": "preference_violation"
 }

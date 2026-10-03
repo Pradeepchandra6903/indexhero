@@ -1,0 +1,15 @@
+{
+  "message_id": "m030",
+  "to": "priya@paperjet.io",
+  "cc": [],
+  "subject": "Re: Launch week -- kickoff",
+  "body": "Hi Priya -- on \"Sam, can you approve the final pricing copy by the 12th?\" -- noted, I will come back with the specifics.\n\nContext I am working from (m028, m029): \"Load test on the signup flow is scheduled for the 14th.\"",
+  "cited": [
+    "m028",
+    "m029"
+  ],
+  "evidence": [
+    "Load test on the signup flow is scheduled for the 14th."
+  ],
+  "draft_kind": "thread_context"
+}

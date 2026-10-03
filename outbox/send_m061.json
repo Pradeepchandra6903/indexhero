@@ -1,5 +1,15 @@
 {
   "message_id": "m061",
-  "disposition": "reply",
-  "reason": "Dental reminder needs CONFIRM/RESCHEDULE reply; CONFLICTS with the investor call in m010 at the same day/time."
+  "to": "appointments@brightsmile-dental.com",
+  "cc": [],
+  "subject": "Re: Reminder: your appointment on Sep 15",
+  "body": "Hi -- september 15 3:00pm does not work on my side. m010 already has that slot: \"Does Tuesday the 15th at 3:00pm work on your side?\" (from aria.f@northwind.vc). Can we pick another time rather than double-book?",
+  "cited": [
+    "m061",
+    "m010"
+  ],
+  "evidence": [
+    "Does Tuesday the 15th at 3:00pm work on your side?"
+  ],
+  "draft_kind": "conflict"
 }

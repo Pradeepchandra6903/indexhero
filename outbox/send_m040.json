@@ -1,0 +1,16 @@
+{
+  "message_id": "m040",
+  "to": "priya@paperjet.io",
+  "cc": [],
+  "subject": "Re: board deck",
+  "body": "Hi Priya -- yes. m038 puts it on the 18th, so counting back 2 days, I will have the board deck circulated by the 16th.\n\nGrounding: \"Confirming the quarterly board review is set for the 18th, 10:00am, in-person at the office.\" (m038) and your own \"Can you have the board deck finished and circulated two days before the board review?\" (m040).",
+  "cited": [
+    "m038",
+    "m040"
+  ],
+  "evidence": [
+    "Confirming the quarterly board review is set for the 18th, 10:00am, in-person at the office.",
+    "offset '2 days before the board review' and the subject 'board deck' come from m040; the 18 comes from m038 ('board review' scheduled there); 18 - 2 = 16"
+  ],
+  "draft_kind": "derived_deadline"
+}

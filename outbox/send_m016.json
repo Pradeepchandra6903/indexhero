@@ -1,5 +1,15 @@
 {
   "message_id": "m016",
-  "disposition": "reply",
-  "reason": "Acme requests a demo Wednesday 2:00pm; CONFLICTS with the internal 1:1 reschedule in m013 at the same slot."
+  "to": "partners@acme-corp.com",
+  "cc": [],
+  "subject": "Re: PaperJet demo -- Wednesday?",
+  "body": "Hi -- wednesday 2:00pm does not work on my side. m013 already has that slot: \"Can we move our weekly 1:1 from Thursday to Wednesday at 2:00pm this week?\" (from raghav@paperjet.io). Can we pick another time rather than double-book?",
+  "cited": [
+    "m016",
+    "m013"
+  ],
+  "evidence": [
+    "Can we move our weekly 1:1 from Thursday to Wednesday at 2:00pm this week?"
+  ],
+  "draft_kind": "conflict"
 }

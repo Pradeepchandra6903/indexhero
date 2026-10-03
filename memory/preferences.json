@@ -1,21 +1,22 @@
 {
-  "cc_legal_on_hartwell_cho": {
-    "key": "cc_legal_on_hartwell_cho",
-    "value": {
-      "cc": "priya@paperjet.io",
-      "domain": "hartwellcho.com"
-    },
-    "source_message_id": "m015",
-    "stated": "CC Priya on anything from Hartwell & Cho (our lawyers).",
-    "created_at": "run-1"
-  },
-  "no_meetings_before_11am": {
-    "key": "no_meetings_before_11am",
+  "earliest_meeting_time": {
+    "key": "earliest_meeting_time",
     "value": {
       "earliest": "11:00am"
     },
     "source_message_id": "m041",
-    "stated": "No meetings before 11:00am, ever; offer 11:00am or later instead.",
-    "created_at": "x5-bootstrap"
+    "stated": "Note for the assistant: I do not take meetings before 11:00am, ever.",
+    "created_at": "2026-09-04T08:05:00"
+  },
+  "cc_rule:hartwellcho.com": {
+    "key": "cc_rule:hartwellcho.com",
+    "value": {
+      "cc": "priya@paperjet.io",
+      "domain": "hartwellcho.com",
+      "scope": "Hartwell & Cho"
+    },
+    "source_message_id": "m015",
+    "stated": "Standing request: from now on, please make sure I'm CC'd on anything that comes in from our lawyers at Hartwell & Cho.",
+    "created_at": "2026-09-04T11:03:00"
   }
 }
