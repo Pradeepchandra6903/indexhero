@@ -10,11 +10,19 @@ def run(ctx) -> dict:
     write_dashboard_json(data)
     write_dashboard_html(data)
 
+    derived = [c for c in data["commitments_calendar"] if c.get("source") == "cross_thread_derived"]
+
     print(f"Pending actions: {len(data['pending_actions'])}")
     print(f"Flagged items:   {len(data['flagged_items'])}")
-    print(f"Commitments:     {len(data['commitments_calendar'])}")
+    print(f"Commitments:     {len(data['commitments_calendar'])} "
+          f"({len(derived)} derived from more than one message)")
+    print(f"Citation errors: {len(data['citation_errors'])} "
+          f"(every cited id checked against inbox.json)")
     for c in data["conflicts"]:
         print(f"CONFLICT: {c['day']} {c['time']} -- {c['message_ids']}")
+    for c in derived:
+        print(f"CROSS-THREAD: {c['cited']} -> {c['text']}")
+        print(f"              {c['derivation']}")
     print("\nWrote dashboard.html and dashboard.json")
 
     ctx.trace.log(
@@ -34,5 +42,7 @@ def run(ctx) -> dict:
         "pending": len(data["pending_actions"]),
         "flagged": len(data["flagged_items"]),
         "commitments": len(data["commitments_calendar"]),
+        "derived_commitments": [{"cited": c["cited"], "text": c["text"]} for c in derived],
+        "citation_errors": data["citation_errors"],
         "conflicts": data["conflicts"],
     }

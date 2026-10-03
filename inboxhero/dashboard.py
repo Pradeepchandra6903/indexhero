@@ -7,26 +7,19 @@ import html
 import json
 from pathlib import Path
 
-from .commitments import Commitment, detect_conflicts, extract_commitments
+from .commitments import (
+    Commitment,
+    derive_cross_thread_commitments,
+    detect_conflicts,
+    extract_commitments,
+    validate_citations,
+)
 from .models import Message, by_id
 from .router import Decision
 
 ROOT = Path(__file__).resolve().parent.parent
 DASHBOARD_JSON = ROOT / "dashboard.json"
 DASHBOARD_HTML = ROOT / "dashboard.html"
-
-# Cross-thread commitment that plain regex can't compute (needs date math
-# across two messages): board deck due two days before the 18th board
-# review -> the 16th. Demonstrates thread-walk + keyword retrieval +
-# citation builder working together, the same shape as R2/X2.
-DERIVED_COMMITMENTS = [
-    {
-        "text": "Board deck finished and circulated by the 16th (two days before the 18th board review).",
-        "cited": ["m038", "m040"],
-        "day": "16",
-        "time": None,
-    }
-]
 
 
 def build_dashboard(messages: list[Message], decisions: list[Decision]) -> dict:
@@ -60,27 +53,52 @@ def build_dashboard(messages: list[Message], decisions: list[Decision]) -> dict:
     conflicts = detect_conflicts(commitments)
     conflict_ids = {mid for c in conflicts for mid in c["message_ids"]}
 
-    commitments_calendar = [
-        {
-            "message_id": c.message_id,
-            "thread_id": c.thread_id,
-            "text": c.text,
-            "day": c.day_token,
-            "time": c.time_token,
-            "conflict": c.message_id in conflict_ids,
-        }
-        for c in commitments
-    ]
-    for dc in DERIVED_COMMITMENTS:
+    # Every commitment carries the ids it came from, and those ids are checked
+    # against the mail store before the pane is built (Part 7, same rule as
+    # Part 3). Anything that cites a message this inbox does not contain is
+    # dropped and reported rather than rendered.
+    commitments_calendar = []
+    citation_errors = []
+
+    for c in commitments:
+        present, missing = validate_citations([c.message_id], messages)
+        if missing:
+            citation_errors.append({"text": c.text, "missing": missing})
+            continue
         commitments_calendar.append(
             {
-                "message_id": "+".join(dc["cited"]),
-                "thread_id": "derived:t-board+t-deck",
-                "text": dc["text"],
-                "day": dc["day"],
-                "time": dc["time"],
+                "message_id": c.message_id,
+                "thread_id": c.thread_id,
+                "text": c.text,
+                "day": c.day_token,
+                "time": c.time_token,
+                "conflict": c.message_id in conflict_ids,
+                "cited": present,
+                "source": "single_message",
+            }
+        )
+
+    # Cross-thread commitments are computed: the offset and subject come from
+    # the referring message, the absolute date from the message that schedules
+    # the event, and the due date is arithmetic over the two.
+    for derived in derive_cross_thread_commitments(messages):
+        present, missing = validate_citations(derived.cited, messages)
+        if missing:
+            citation_errors.append({"text": derived.text, "missing": missing})
+            continue
+        commitments_calendar.append(
+            {
+                "message_id": "+".join(present),
+                "thread_id": "derived:" + "+".join(
+                    sorted({msg_by_id[cid].thread_id for cid in present})
+                ),
+                "text": derived.text,
+                "day": derived.day_token,
+                "time": derived.time_token,
                 "conflict": False,
-                "cited": dc["cited"],
+                "cited": present,
+                "source": "cross_thread_derived",
+                "derivation": derived.derivation,
             }
         )
 
@@ -89,6 +107,7 @@ def build_dashboard(messages: list[Message], decisions: list[Decision]) -> dict:
         "flagged_items": flagged_items,
         "commitments_calendar": commitments_calendar,
         "conflicts": conflicts,
+        "citation_errors": citation_errors,
     }
 
 
@@ -128,9 +147,12 @@ def render_html(data: dict) -> str:
             when = f"{c.get('day') or ''} {c.get('time') or ''}".strip()
             cited = ", ".join(c.get("cited", [])) if c.get("cited") else c["message_id"]
             marker = "\u26a0 CONFLICT " if c.get("conflict") else ""
+            text = _esc(c["text"])
+            if c.get("derivation"):
+                text += f"<br><span class='derivation'>derived: {_esc(c['derivation'])}</span>"
             rows.append(
                 f"<tr{cls}><td>{_esc(cited)}</td><td>{_esc(when)}</td>"
-                f"<td>{marker}{_esc(c['text'])}</td></tr>"
+                f"<td>{marker}{text}</td></tr>"
             )
         return "\n".join(rows)
 
@@ -159,6 +181,7 @@ def render_html(data: dict) -> str:
   td.threat {{ color: #a30000; font-weight: 600; }}
   .banner {{ background: #fff2f2; border: 1px solid #e0a0a0; border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 1rem; }}
   .pill {{ display:inline-block; background:#eef; border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.8rem; }}
+  .derivation {{ color: #555; font-size: 0.8rem; }}
 </style>
 </head>
 <body>
