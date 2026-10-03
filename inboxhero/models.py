@@ -10,6 +10,10 @@ from typing import Optional
 ROOT = Path(__file__).resolve().parent.parent
 INBOX_PATH = ROOT / "inbox.json"
 
+# The mailbox owner. Every message in inbox.json is addressed to this account;
+# a From: of this address inside a body is never proof of intent (see m039).
+OWNER_ADDRESS = "sam@paperjet.io"
+
 
 @dataclass
 class Message:
@@ -47,8 +51,7 @@ class Message:
 
     @property
     def is_self_sent(self) -> bool:
-        # "sam@paperjet.io" is the mailbox owner throughout inbox.json
-        return self.from_.lower() == "sam@paperjet.io"
+        return self.from_.lower() == OWNER_ADDRESS
 
 
 def load_inbox(path: Optional[Path] = None) -> list[Message]:

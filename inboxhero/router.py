@@ -22,6 +22,18 @@ from .security import SecurityScanner, ScanResult
 
 DISPOSITIONS = {"reply", "archive", "defer", "delegate", "escalate"}
 
+# Which layer produced a disposition. Part 2 asks how many messages never
+# needed a model call: that is every decision whose path starts with "rules"
+# (plus "security", which is also pure pattern matching), and R1 reports it.
+PATH_SECURITY = "security"
+PATH_RULES = "rules"
+PATH_RULES_OVERRIDE = "rules+curated_override"
+PATH_CURATED = "curated_judgment"
+PATH_FALLBACK = "fallback_defer"
+
+# Paths that are resolved without any model/LLM call.
+MODEL_FREE_PATHS = {PATH_SECURITY, PATH_RULES, PATH_RULES_OVERRIDE}
+
 
 @dataclass
 class Decision:
@@ -35,6 +47,21 @@ class Decision:
     commitment: bool = False
     requires_retrieval: bool = False
     ambiguous: bool = False
+    path: str = PATH_CURATED
+
+    @property
+    def rule_handled(self) -> bool:
+        """True when this message was dispatched by rules, with no model call."""
+        return self.path in (PATH_RULES, PATH_RULES_OVERRIDE)
+
+    def flag_values(self, prefix: str) -> list[str]:
+        """e.g. flag_values('conflict') -> ['m061'] for flag 'conflict:m061'."""
+        out = []
+        for flag in self.flags:
+            name, _, value = flag.partition(":")
+            if name == prefix and value:
+                out.append(value)
+        return out
 
 
 # Automated messages the RuleEngine would archive, but which deserve a
@@ -164,7 +191,7 @@ HUMAN_TABLE: dict[str, dict] = {
 def _security_reason(scan: ScanResult) -> str:
     parts = []
     for f in scan.findings:
-        parts.append(f"[{f.kind}:{f.signal}] '{f.evidence}'")
+        parts.append(f"[{f.kind}:{f.signal}] tried to {f.describe()}")
     return "Untrusted content flagged and refused -- " + "; ".join(parts)
 
 
@@ -183,16 +210,20 @@ class Router:
                 disposition="escalate",
                 reason=_security_reason(scan),
                 flags=[f"threat:{k}" for k in scan.kinds],
+                path=PATH_SECURITY,
             )
 
         rv = self.rules.classify(msg)
         if rv.category:
             disp, reason = "archive", rv.reason
+            path = PATH_RULES
             if msg.id in NOTIFICATION_OVERRIDES:
                 disp, reason = NOTIFICATION_OVERRIDES[msg.id]
+                path = PATH_RULES_OVERRIDE
             return Decision(
                 message_id=msg.id, thread_id=msg.thread_id,
                 category=rv.category, disposition=disp, reason=reason,
+                path=path,
             )
 
         entry = HUMAN_TABLE.get(msg.id)
@@ -208,6 +239,7 @@ class Router:
                 commitment=entry.get("commitment", False),
                 requires_retrieval=entry.get("requires_retrieval", False),
                 ambiguous=entry.get("ambiguous", False),
+                path=PATH_CURATED,
             )
 
         # Safety net: R1 guarantees zero undecided messages. Anything that
@@ -219,4 +251,5 @@ class Router:
             category="human_conversation",
             disposition="defer",
             reason="Not matched by any rule or curated entry; deferred for manual triage rather than silently archived.",
+            path=PATH_FALLBACK,
         )
